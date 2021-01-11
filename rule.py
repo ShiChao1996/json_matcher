@@ -111,7 +111,7 @@ class SimpleValueRule(Rule):
         self._val = val
 
     def match(self, data):
-        assert self._val == data, "Value error, expect {}, but get {}".format(self._val, data)
+        assert self._val == data, "Value error {}, expect {}, but get {}".format(self._key, self._val, data)
 
 
 class ValueTypeRule(Rule):
@@ -196,7 +196,7 @@ def gen_rule(template, key=""):
     elif isinstance(template, (int, float, str)):
         rule = SimpleValueRule(template)
 
-    elif template in (int, float, str):
+    elif template in (int, float, str, list, dict):
         rule = ValueTypeRule(template)
 
     elif isinstance(template, LogicOpRule):
@@ -242,7 +242,7 @@ if __name__ == "__main__":
     # rules.match({
     #     "a": 1
     # })
-    #
+
     # # ==============
     # tpl = {
     #     "a": {

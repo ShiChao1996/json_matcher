@@ -19,6 +19,7 @@ class JsonMatcher(object):
         :param data:
         :return:
         """
+        self.is_last_match = False
         try:
             self.rule.match(data)
             self.is_last_match = True
@@ -26,13 +27,13 @@ class JsonMatcher(object):
         except AssertionError as ex:
             return False, ex.args[0]
 
-    def find_target_dict(self, d):
+    def try_match(self, d):
         if not isinstance(d, (list, dict)):
             return None
 
         if isinstance(d, list):
             for item in d:
-                data = self.find_target_dict(item)
+                data = self.try_match(item)
                 if data:
                     return data
 
@@ -43,7 +44,7 @@ class JsonMatcher(object):
             return d
 
         for v in d.values():
-            match_data = self.find_target_dict(v)
+            match_data = self.try_match(v)
             if match_data:
                 return match_data
 
@@ -53,3 +54,35 @@ class JsonMatcher(object):
         if self.is_last_match:
             return self.rule.get_data()
         return "not matched"
+
+
+if __name__ == "__main__":
+    tpl = {
+        "a": 1,
+        "b": {
+            "bb": 2
+        }
+    }
+    matcher = JsonMatcher(tpl)
+
+    data1 = {
+        "a": 1,
+        "b": {
+            "bb": 2
+        },
+        "c": 123
+    }
+    ok, msg = matcher.is_match(data1)
+    print(ok, msg)
+    # True, ""
+
+    data2 = {
+        "a": 2,
+        "b": {
+            "bb": 2
+        },
+        "c": 123
+    }
+    ok, msg = matcher.is_match(data2)
+    print(ok, msg)
+    # False, "Value error a, expect 1, but get 2"
