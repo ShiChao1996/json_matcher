@@ -5,7 +5,7 @@
 """
 import json
 
-from json_matcher.rule import gen_rule
+from rule import gen_rule
 
 
 class JsonMatcher(object):

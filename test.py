@@ -3,8 +3,8 @@
 @time: 2021/1/9 5:24 下午
 @author: shichao
 """
-from json_matcher import or_, get_
-from json_matcher.matcher import JsonMatcher
+from matcher import JsonMatcher
+from rule import or_, get_
 
 
 def test_basic():

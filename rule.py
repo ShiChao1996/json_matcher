@@ -6,7 +6,7 @@
 import typing
 from enum import IntEnum
 
-from json_matcher.util import labels
+from util import labels
 
 
 class Rule:
