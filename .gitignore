@@ -2,3 +2,5 @@
 dist/
 json_matcher_shichao1996.egg-info/
 build/
+.idea/
+json_matcher.egg-info/
