@@ -1,1 +1,4 @@
  __pycache__/
+dist/
+json_matcher_shichao1996.egg-info/
+build/
