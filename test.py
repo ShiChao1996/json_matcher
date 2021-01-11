@@ -195,7 +195,7 @@ def test_parse():
         "key3": []
     }
     matcher = JsonMatcher(tpl)
-    matched_data = matcher.try_match(data)
+    matched_data = matcher._find_from(data)
     print(matched_data)
     # {'a': {'b': 1, 'c': 'data to fetch'}}
     fetched_data = matcher.get_data()

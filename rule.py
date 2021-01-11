@@ -9,7 +9,6 @@ from enum import IntEnum
 from json_matcher.util import labels
 
 
-
 class Rule:
     def __init__(self, key=""):
         self._key = key
@@ -18,14 +17,14 @@ class Rule:
         raise NotImplementedError
 
     def get_data(self):
-        data = {}
+        data = []
         if isinstance(self, ValueFetcher):
-            data.update(self.dict_data)
+            data.extend(self.data)
 
         if isinstance(self, RuleWithChild):
             for sub_rule in self._children:
                 sub_data = sub_rule.get_data()
-                data.update(sub_data)
+                data.extend(sub_data)
 
         return data
 
@@ -33,18 +32,16 @@ class Rule:
 class ValueFetcher(Rule):
     def __init__(self, with_key=True):
         self.with_key = with_key
-        self.list_data = []
-        self.dict_data = {}
+        self.data = []
         super(ValueFetcher, self).__init__()
 
     def match(self, data):
         self.fetch(data)
 
     def fetch(self, data):
-        if self.with_key:
-            self.dict_data[self._key] = data
-        else:
-            self.list_data.append(data)
+        self.data.append({
+            self._key: data
+        })
 
 
 get_ = ValueFetcher
@@ -123,6 +120,14 @@ class ValueTypeRule(Rule):
         assert isinstance(data, self._type), "Type error, expect type: {}, but get {}".format(self._type, type(data))
 
 
+class KeyRule(Rule):
+    def __init__(self):
+        super(KeyRule, self).__init__()
+
+    def match(self, data):
+        assert self._key
+
+
 @labels
 class LogicOpType(IntEnum):
     AND = 1
@@ -178,6 +183,7 @@ class LogicOpAND(LogicOpRule):
 
 and_ = LogicOpAND
 or_ = LogicOpOR
+any_ = KeyRule()  # only check key exist, not check value
 
 
 def gen_rule(template, key=""):
@@ -193,10 +199,10 @@ def gen_rule(template, key=""):
             child_rule = gen_rule(item)
             rule.add_child(child_rule)
 
-    elif isinstance(template, (int, float, str)):
+    elif isinstance(template, (int, float, str, bool)):
         rule = SimpleValueRule(template)
 
-    elif template in (int, float, str, list, dict):
+    elif template in (int, float, str, list, dict, bool):
         rule = ValueTypeRule(template)
 
     elif isinstance(template, LogicOpRule):
@@ -206,6 +212,9 @@ def gen_rule(template, key=""):
             rule.add_child(sub_rule)
 
     elif isinstance(template, ValueFetcher):
+        rule = template
+
+    elif isinstance(template, KeyRule):
         rule = template
     else:
         raise NotImplementedError("type of {} not support yet".format(type(template)))
@@ -219,7 +228,7 @@ if __name__ == "__main__":
         "a": [
             {
                 "aa": 1,
-                "bb": get_()
+                "bb": any_
             }
         ]
     }
@@ -228,7 +237,7 @@ if __name__ == "__main__":
         "a": [
             {
                 "aa": 1,
-                "bb": [1, 2, 3]
+                "bbb": [1, 2, 3]
             },
         ]
     })
