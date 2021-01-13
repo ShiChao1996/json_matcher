@@ -62,6 +62,9 @@ class RuleWithChild(Rule):
 class ListRule(RuleWithChild):
     def __init__(self, templates, key=""):
         super(ListRule, self).__init__(key)
+        for item in templates:
+            child_rule = rf.gen_rule("", item)
+            self.add_child(child_rule)
 
     def match(self, data):
         """
@@ -89,6 +92,9 @@ class ListRule(RuleWithChild):
 class DictRule(RuleWithChild):
     def __init__(self, template: dict, key=""):
         super(DictRule, self).__init__(key=key)
+        for k, v in template.items():
+            child_rule = rf.gen_rule(k, v)
+            self.add_child(child_rule)
 
     def match(self, data):
         assert isinstance(data, dict), "Type error, expect type: dict, but get {}".format(type(data))
@@ -141,9 +147,13 @@ class LogicOpType(IntEnum):
 
 class LogicOpRule(RuleWithChild):
     def __init__(self, op: LogicOpType, templates, key=""):
+        super(LogicOpRule, self).__init__(key=key)
         self._op = op
         self._templates = templates
-        super(LogicOpRule, self).__init__(key=key)
+        for sub_tpl in templates:
+            k = LogicOpType.label(op)
+            sub_rule = rf.gen_rule(k, sub_tpl)
+            self.add_child(sub_rule)
 
     @property
     def op(self):
@@ -186,63 +196,48 @@ or_ = LogicOpOR
 any_ = KeyRule()  # only check key exist, not check value
 
 
-def gen_rule(template, key=""):
-    if isinstance(template, dict):
-        rule = DictRule(template)
-        for k, v in template.items():
-            child_rule = gen_rule(v, key=k)
-            rule.add_child(child_rule)
+class RuleFactory:
+    def gen_rule(self, key, template):
+        if isinstance(template, dict):
+            rule = DictRule(template, key=key)
+        elif isinstance(template, list):
+            rule = ListRule(template, key=key)
+        elif isinstance(template, (int, float, str, bool)):
+            rule = SimpleValueRule(template, key=key)
+        elif template in (int, float, str, list, dict, bool):
+            rule = ValueTypeRule(template)
+        elif isinstance(template, (LogicOpRule, ValueFetcher, KeyRule)):
+            rule = template
+            rule._key = key
+        else:
+            raise NotImplementedError("type of {} not support yet".format(type(template)))
 
-    elif isinstance(template, list):
-        rule = ListRule(template)
-        for item in template:
-            child_rule = gen_rule(item)
-            rule.add_child(child_rule)
+        return rule
 
-    elif isinstance(template, (int, float, str, bool)):
-        rule = SimpleValueRule(template)
 
-    elif template in (int, float, str, list, dict, bool):
-        rule = ValueTypeRule(template)
-
-    elif isinstance(template, LogicOpRule):
-        rule = template
-        for sub_tpl in rule.templates:
-            sub_rule = gen_rule(sub_tpl, key=LogicOpType.label(rule.op))
-            rule.add_child(sub_rule)
-
-    elif isinstance(template, ValueFetcher):
-        rule = template
-
-    elif isinstance(template, KeyRule):
-        rule = template
-    else:
-        raise NotImplementedError("type of {} not support yet".format(type(template)))
-
-    rule._key = key
-    return rule
-
+rf = RuleFactory()
 
 if __name__ == "__main__":
-    tpl = {
-        "a": [
-            {
-                "aa": 1,
-                "bb": any_
-            }
-        ]
-    }
-    rule = gen_rule(tpl)
-    rule.match({
-        "a": [
-            {
-                "aa": 1,
-                "bbb": [1, 2, 3]
-            },
-        ]
-    })
-    data = rule.get_data()
-    print(data)
+    pass
+    # tpl = {
+    #     "a": [
+    #         {
+    #             "aa": 1,
+    #             "bb": any_
+    #         }
+    #     ]
+    # }
+    # rule = rf.gen_rule("", tpl)
+    # rule.match({
+    #     "a": [
+    #         {
+    #             "aa": 1,
+    #             "bbb": [1, 2, 3]
+    #         },
+    #     ]
+    # })
+    # data = rule.get_data()
+    # print(data)
     #
     # tpl = {
     #     "a": 1
