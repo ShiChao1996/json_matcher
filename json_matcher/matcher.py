@@ -5,13 +5,13 @@
 """
 import json
 
-from json_matcher.rule import gen_rule
+from json_matcher.rule import rf
 
 
 class JsonMatcher(object):
     def __init__(self, tpl):
         self.tpl = tpl
-        self.rule = gen_rule(tpl)
+        self.rule = rf.gen_rule("", tpl)
         self.is_last_match = False
 
     def is_match(self, data):

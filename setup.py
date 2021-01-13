@@ -10,7 +10,7 @@ with open("./README.md", "r") as f:
     long_desc = f.read()
 
 setuptools.setup(
-    name="json_matcher",
+    name="JsonMatcher",
     version="0.0.1",
     author="Shichao1996",
     author_email="2483061998@qq.com",
