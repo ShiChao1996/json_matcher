@@ -11,7 +11,7 @@ from json_matcher.rule import rf
 class JsonMatcher(object):
     def __init__(self, tpl):
         self.tpl = tpl
-        self.rule = rf.gen_rule("", tpl)
+        self.rule = rf.gen_rule(None, "", tpl)
         self.is_last_match = False
 
     def is_match(self, data):
@@ -68,7 +68,7 @@ class JsonMatcher(object):
 
     def get_data(self):
         if self.is_last_match:
-            return self.rule.get_data()
+            return self.rule.combine_data()
         return "not matched"
 
 
