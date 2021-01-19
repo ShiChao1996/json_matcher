@@ -11,7 +11,7 @@ with open("./README.md", "r") as f:
 
 setuptools.setup(
     name="JsonMatcher",
-    version="0.0.1",
+    version="0.0.3",
     author="Shichao1996",
     author_email="2483061998@qq.com",
     license='MIT',

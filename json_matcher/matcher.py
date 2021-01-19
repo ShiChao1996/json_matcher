@@ -21,7 +21,7 @@ class JsonMatcher(object):
         :return:
         """
         try:
-            self.rule.match(data)
+            self.rule.try_match(data)
             self.is_last_match = True
             return True, ""
         except AssertionError as ex:
@@ -68,37 +68,5 @@ class JsonMatcher(object):
 
     def get_data(self):
         if self.is_last_match:
-            return self.rule.combine_data()
+            return list(self.rule.combine_data())
         return "not matched"
-
-
-if __name__ == "__main__":
-    tpl = {
-        "a": 1,
-        "b": {
-            "bb": 2
-        }
-    }
-    matcher = JsonMatcher(tpl)
-
-    data1 = {
-        "a": 1,
-        "b": {
-            "bb": 2
-        },
-        "c": 123
-    }
-    ok, msg = matcher.is_match(data1)
-    print(ok, msg)
-    # True, ""
-
-    data2 = {
-        "a": 2,
-        "b": {
-            "bb": 2
-        },
-        "c": 123
-    }
-    ok, msg = matcher.is_match(data2)
-    print(ok, msg)
-    # False, "Value error a, expect 1, but get 2"

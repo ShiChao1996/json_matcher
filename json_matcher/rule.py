@@ -38,17 +38,32 @@ class TxMap:
 tx_map = TxMap()
 
 
-class Rule:
+class BaseKey:
+    def __init__(self, key=""):
+        self._optional = key.startswith("?")
+        self._key = key.replace("?", "")
+
+    @property
+    def key(self):
+        return self._key
+
+    @key.setter
+    def key(self, value):
+        self._optional = value.startswith("?")
+        self._key = value.replace("?", "")
+
+    @property
+    def optional(self):
+        return self._optional
+
+
+class Rule(BaseKey):
     def __init__(self, parent, key=""):
-        self._key = key
+        super(Rule, self).__init__(key)
         self._parent = parent
         self._depth = 0
         if parent:
             self._depth = parent.depth + 1
-
-    @property
-    def optional(self):
-        return self._key.startswith("?")
 
     @property
     def depth(self):
@@ -134,7 +149,7 @@ class ValueFetcher(Rule):
 
     def fetch(self, data):
         self.temp_data.append({
-            self._key.replace("?", ""): data
+            self.key: data
         })
 
     def commit(self, commit_no):
@@ -153,7 +168,7 @@ class SimpleValueRule(Rule):
         self._val = val
 
     def match(self, data):
-        assert self._val == data, "Value error {}, expect {}, but get {}".format(self._key, self._val, data)
+        assert self._val == data, "Value error {}, expect {}, but get {}".format(self.key, self._val, data)
 
 
 class ValueTypeRule(Rule):
@@ -170,7 +185,7 @@ class KeyRule(Rule):
         super(KeyRule, self).__init__(None)
 
     def match(self, data):
-        assert self._key
+        assert self.key
 
 
 class RuleWithChild(Rule):
@@ -198,9 +213,9 @@ class ListRule(RuleWithChild):
         :param data:
         :return:
         """
-        assert isinstance(data, list)
+        assert isinstance(data, list), "type error, expect list, but get {}".format(type(data))
         if self._children:
-            assert data, "no data to match rules {}".format(self._key)
+            assert data, "no data to match rules {}".format(self.key)
         for rule in self._children:
             matched = False
             msgs = []
@@ -217,7 +232,6 @@ class ListRule(RuleWithChild):
                     if match_all:
                         matched = False
                         break
-                    # TODO
 
             if not matched:
                 assert False, "None of element in list match the rule, detail: \n{}".format("\n".join(msgs))
@@ -236,14 +250,13 @@ class DictRule(RuleWithChild):
 
     def match_child(self, data):
         for rule in self._children:
-            optional = rule._key.startswith("?")
-            key = rule._key.replace("?", "")
+            key = rule.key
             key_exist = key in data.keys()
-            if (not key_exist) and optional:
+            if (not key_exist) and rule.optional:
                 continue
 
-            assert key_exist, "Not match, except key: '{}' but not exist".format(rule._key)
-            val = data.get(key.replace("?", ""))
+            assert key_exist, "Not match, except key: '{}' but not exist".format(key)
+            val = data.get(key)
             rule.try_match(val)
 
 
@@ -338,7 +351,7 @@ class ListPatternAll(ListPattern):
 and_ = LogicOpAND
 or_ = LogicOpOR
 get_ = ValueFetcher
-any_ = KeyRule()  # only check key exist, not check value
+any_ = KeyRule()  # check key exist only
 all_ = ListPatternAll
 
 
@@ -351,10 +364,10 @@ class RuleFactory:
         elif isinstance(template, (int, float, str, bool)):
             rule = SimpleValueRule(parent, template, key=key)
         elif template in (int, float, str, list, dict, bool):
-            rule = ValueTypeRule(parent, template)
+            rule = ValueTypeRule(parent, template, key=key)
         elif isinstance(template, (LogicOpRule, ValueFetcher, KeyRule, ListPatternAll)):
             rule = template
-            rule._key = key
+            rule.key = key
             rule.parent = parent
             if isinstance(template, ValueFetcher):
                 tx_map.update(rule.tx_key, rule.depth)
@@ -365,77 +378,3 @@ class RuleFactory:
 
 
 rf = RuleFactory()
-
-if __name__ == "__main__":
-    pass
-
-    tpl = {
-        "a": 1,
-        "b": [
-            all_({
-                "?c": get_(),
-                "?d": get_(),
-            })
-        ]
-    }
-    rule = rf.gen_rule(None, "", tpl)
-    rule.try_match({
-        "a": 1,
-        "b": [
-            {
-                "c": 111,
-                "d": 111
-            },
-            {
-                "c": 222,
-                "dd": 222
-            },
-            {
-                "cc": 222,
-                "d": 222
-            },
-        ]
-    })
-    data = rule.combine_data()
-    for item in data:
-        print(item)
-
-    # tpl = {
-    #     "a": 1
-    # }
-    # rules = gen_rule(tpl)
-    # rules.match({
-    #     "a": 1
-    # })
-
-    # # ==============
-    # tpl = {
-    #     "a": {
-    #         "b": 1
-    #     }
-    # }
-    # rules = gen_rule(tpl)
-    # rules.match({
-    #     "a": {
-    #         "b": 1
-    #     }
-    # })
-    #
-    # # ==============
-    # tpl = {
-    #     "a": {
-    #         "b": {
-    #             "c": 1
-    #         }
-    #     }
-    # }
-    # rules = gen_rule(tpl)
-    # rules.match({
-    #     "a": {
-    #         "cc": "",
-    #         "b": {
-    #             "aa": 1,
-    #             "c": 1
-    #         }
-    #     }
-    # })

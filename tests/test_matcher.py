@@ -4,7 +4,7 @@
 @author: shichao
 """
 from json_matcher.matcher import JsonMatcher
-from json_matcher.rule import or_, get_, all_
+from json_matcher.rule import or_, get_, all_, any_
 
 
 def test_basic():
@@ -26,8 +26,7 @@ def test_basic():
         "c": [1, 2, 3]
     }
     ok, msg = matcher.is_match(data1)
-    print(ok, msg)
-    # True, ""
+    assert ok
 
     # =========case2=========
     data2 = {
@@ -38,7 +37,7 @@ def test_basic():
         "c": 123
     }
     ok, msg = matcher.is_match(data2)
-    print(ok, msg)
+    assert not ok
     # False, "Value error a, expect 1, but get 2"
 
     # =========case3=========
@@ -50,7 +49,7 @@ def test_basic():
         "c": 123
     }
     ok, msg = matcher.is_match(data3)
-    print(ok, msg)
+    assert not ok
     # False, "Type error, expect type: <class 'list'>, but get <class 'int'>"
 
 
@@ -75,7 +74,7 @@ def test_list():
         ]
     }
     ok, msg = matcher.is_match(data1)
-    print(ok, msg)
+    assert ok
     # True, ""
 
     # =========case2=========
@@ -98,7 +97,7 @@ def test_list():
         ]
     }
     ok, msg = matcher.is_match(data1)
-    print(ok, msg)
+    assert not ok
     # False, None of element in list match the rule, detail:
     #   Type error, expect type: dict, but get <class 'int'>
 
@@ -124,7 +123,7 @@ def test_logic():
         },
     }
     ok, msg = matcher.is_match(data1)
-    print(ok, msg)
+    assert ok
     # True, ""
     # Note：for each rule in list template, if any element in data matches the rule, will return true
 
@@ -149,7 +148,7 @@ def test_logic():
         "c": 1
     }
     ok, msg = matcher.is_match(data2)
-    print(ok, msg)
+    assert ok
     # True, ""
 
     data3 = {
@@ -162,7 +161,7 @@ def test_logic():
         "c": 3
     }
     ok, msg = matcher.is_match(data3)
-    print(ok, msg)
+    assert not ok
     # False Value error logic_op_or, expect 1, but get 3
     # Value error logic_op_or, expect 2, but get 3
 
@@ -191,7 +190,7 @@ def test_logic():
         "b": []
     }
     ok, msg = matcher.is_match(data4)
-    print(ok, msg)
+    assert ok
     # True, ""
 
 
@@ -199,13 +198,13 @@ def test_fetch():
     tpl = {
         "a": {
             "b": 1,
-            "c": get_()
+            "c": any_,
+            "d": get_()
         }
     }
 
     matcher = JsonMatcher(tpl)
     data = {
-        "abc": [1, 2, 3],
         "a": {
             "b": 1,
             "c": {
@@ -214,14 +213,12 @@ def test_fetch():
             },
             "d": "xxx"
         },
-        "bac": {1, 2, 3}
     }
 
     ok, msg = matcher.is_match(data)
-    print(ok, msg)
-    # True, ""
+    assert ok
     fetch_data = matcher.get_data()
-    print(fetch_data)
+    assert fetch_data[0][0].get("d") == 'xxx'
     # {'c': {'c1': 1, 'c2': [1, 2, 3]}}
 
 
@@ -246,56 +243,13 @@ def test_parse():
     matcher = JsonMatcher(tpl)
     matched_data = matcher._find_from(data)
     print(matched_data)
-    # {'a': {'b': 1, 'c': 'data to fetch'}}
     fetched_data = matcher.get_data()
-    print(fetched_data)
-    # {'c': 'data to fetch'}
+    assert fetched_data[0][0].get("c") == 'data to fetch'
 
 
 def test():
-    data1 = {
-        'name': '审核历史',
-        'header': '审核历史',
-        'body': [
-            {'type': 'tpl', 'tpl': '<p>被抽检队列审出结果</p>'},
-            {'type': 'tpl',
-             'label': 'actions:',
-             'tpl': '<div>actions:<div v-for=\'(item, index) in verify_data.mainForm.filter(item => item.name !== "uid")\' style=\'\'>{{item.name}}&nbsp;&nbsp;&nbsp;=&nbsp;&nbsp;{{item.value}}</div></div>'
-             },
-            {'type': 'tpl',
-             'visible': "{{ work_mode === 'audit'}}",
-             'tpl': "<div style='border-bottom:1px dashed #999999; height: 1rem;'></div>"},
-            {'type': 'tpl', 'visible': "{{ work_mode === 'audit'}}",
-             'tpl': '<p>当前队列的初审结果</p>'},
-            {
-                'type': 'tpl',
-                'label': 'actions:',
-                'visible': "{{ work_mode === 'audit'}}",
-                'tpl': '<div>actions:<div v-for=\'(item, index) in second_verify.verify_data.mainForm.filter(item => item.name !== "mus_task_id" && item.name !== "app_id")\' style=\'\'>{{item.name}}&nbsp;&nbsp;&nbsp;=&nbsp;&nbsp;{{item.value}}</div></div>'}
-        ]
-    }
     tpl = {
-        "name": "审核历史",
-        "header": "审核历史",
-        "body": [
-            all_({
-                "type": get_(),
-                "tpl": get_(),
-                "?visible": get_()
-            })
-        ]
-    }
-
-    matcher = JsonMatcher(tpl)
-    matcher.find_from_json(data1)
-    # res = matcher.get_data()
-    # for item in res:
-    #     print(item)
-
-
-
-    tpl = {
-        "a": 1,
+        "?a": 1,
         "b": [
             all_({
                 "?c": get_(),
@@ -315,23 +269,16 @@ def test():
                 "dd": 222
             },
             {
-                "cc": 222,
-                "d": 222
+                "cc": 333,
+                "d": 333
             },
         ]
     }
     matcher = JsonMatcher(tpl)
-    res = matcher.find_from_json(data)
-    print(res)
+    # matcher.find_from_json(data)
+    ok, msg = matcher.is_match(data)
+    print(ok, msg)
     res = matcher.get_data()
-    for item in res:
-        print(item)
-
-
-if __name__ == "__main__":
-    # test_basic()
-    # test_logic()
-    # test_fetch()
-    # test_parse()
-    # test_list()
-    test()
+    assert len(res) == 3
+    assert res[2][0].get("d") == 333
+    print(res)

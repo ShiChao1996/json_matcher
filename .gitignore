@@ -7,3 +7,4 @@ json_matcher.egg-info/
 .DS_Store
 src/__pycache__/
 json_matcher/__pycache__/
+tests/__pycache__/
