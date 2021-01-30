@@ -69,4 +69,4 @@ class JsonMatcher(object):
     def get_data(self):
         if self.is_last_match:
             return list(self.rule.combine_data())
-        return "not matched"
+        return None
